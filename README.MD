@@ -21,11 +21,11 @@ if you intend to sync with a crm, you might want to start [with this higher leve
 
   - Callback signature is: `async callback(action : ActionMessageV2 | EventMessageV2)`
   
-  - it returns boolean (or {processed:boolean{) if false, the message is nacked and processed later
+  - it returns boolean (or {processed:boolean{) if false, the message is nacked. if it's the first time the message has been processed, it is directly requeued, otherwise, it's dropped (pushed in the dead-letter queue and replayed later)
 
   - if this function throw an error, we are going to close the connection
 
-- `testQueue(url, queueName)` - If queue `queueName` exists on AMQP server `url`, return its stats
+  - TODO: `testQueue(url, queueName)` - If queue `queueName` exists on AMQP server `url`, return its stats
 
 ## AMQP authentication
 
