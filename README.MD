@@ -3,7 +3,7 @@
 Proca server pushes actions through AMQP queues, to which you can plug in your microservice.
 This module provides few helpers to work with queues.
 
-if you intend to sync with a crm, you might want to start [with this higher level template](https://github.com/fixthestatusquo/proca-sync-template/)
+if you intend to sync with a crm, you might want to start [with this higher level template](https://github.com/fixthestatusquo/proca-sync/)
 
 ## TypeScript types
 
