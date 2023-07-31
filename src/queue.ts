@@ -6,13 +6,13 @@ export { ActionMessage, ActionMessageV2, ProcessStage } from './actionMessage';
 
 import { ActionMessage, actionMessageV1to2 } from './actionMessage';
 
-import { ConsumerOpts, SyncCallback } from './types';
+import { ConsumerOpts, SyncCallback, Counters } from './types';
 
 import os from 'os';
 
 let connection: any = null;
 let consumer: any = null;
-export const count = {queued : undefined, ack: 0, nack: 0};
+export const count: Counters = {queued : undefined, ack: 0, nack: 0};
 
 async function exitHandler(evtOrExitCodeOrError: number | string | Error) {
   try {

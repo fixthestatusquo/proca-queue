@@ -1,4 +1,4 @@
-export { connect, syncFile, syncQueue, testQueue } from "./queue";
+export { connect, syncFile, syncQueue, testQueue, count } from "./queue";
 
 export { pause } from "./utils";
 
@@ -8,4 +8,4 @@ export type { ActionMessage, ActionMessageV1, ActionMessageV2 } from "./actionMe
 
 export type { EventMessageV2 } from "./eventMessage";
 
-export type { ConsumerOpts, SyncCallback } from "./types";
+export type { ConsumerOpts, SyncCallback, Counters } from "./types";

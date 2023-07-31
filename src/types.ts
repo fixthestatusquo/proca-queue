@@ -19,3 +19,9 @@ export type SyncResult = {
 }
 
 export type SyncCallback = (action: ActionMessageV2 | EventMessageV2) => Promise<SyncResult | boolean>;
+
+export type Counters = {
+  ack: number;
+  nack: number;
+  queued: number | undefined;
+};
