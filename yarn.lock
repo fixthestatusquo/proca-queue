@@ -5883,10 +5883,10 @@ queue-microtask@^1.2.2:
   resolved "https://registry.yarnpkg.com/queue-microtask/-/queue-microtask-1.2.3.tgz#4929228bbc724dfac43e0efb058caf7b6cfb6243"
   integrity sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==
 
-rabbitmq-client@^4.2.0:
-  version "4.2.0"
-  resolved "https://registry.yarnpkg.com/rabbitmq-client/-/rabbitmq-client-4.2.0.tgz#e0a3ba2b2951866767582215dfaee35aefc086de"
-  integrity sha512-w9OTp+GpcvZANdbl3h0LmuS+5S9WiWZMDvekhCGKXBYQdp2p0dCmRP66JBaN5r1fLGK3M3CfiepHX17mG8GxsA==
+rabbitmq-client@^4.3.0:
+  version "4.3.0"
+  resolved "https://registry.yarnpkg.com/rabbitmq-client/-/rabbitmq-client-4.3.0.tgz#e88247c0822ba9be60698534e28aefad03ef9ed8"
+  integrity sha512-Ej/eH/AWcVGJ+6olvvdGhtx0rWpiMCj8pUBG1tZob/sukEME+t2PkkV7JZ7t4P4GFJUZXUz1D1azRfJqVMuA8g==
 
 randombytes@^2.1.0:
   version "2.1.0"
