@@ -1694,10 +1694,10 @@
   resolved "https://registry.yarnpkg.com/@types/json5/-/json5-0.0.29.tgz#ee28707ae94e11d2b827bcbe5270bcea7f3e71ee"
   integrity sha1-7ihweulOEdK4J7y+UnC86n8+ce4=
 
-"@types/line-by-line@^0.1.6":
-  version "0.1.6"
-  resolved "https://registry.yarnpkg.com/@types/line-by-line/-/line-by-line-0.1.6.tgz#1046fe4124bfe0e950b2797b497b4e66b219d93b"
-  integrity sha512-2JuAL5s5LnxuIl2N8EApuY5036ybTH7bjvxVptU0jhKzSWTr7pFrIvwIUBbhchI28cEm7+61k+GKQ5vUQFyORw==
+"@types/line-by-line@^0.1.7":
+  version "0.1.7"
+  resolved "https://registry.yarnpkg.com/@types/line-by-line/-/line-by-line-0.1.7.tgz#3c81da530db0f55b714a84a1c865dce5ba86744a"
+  integrity sha512-y61j9GgMRaBbLFLfBIk12rQCa4/nL5tkS0ebjTfKi/tDVDeni0Zr6tJi+FjxajiAgZpHJQ2aaJbEOJi+ZjHGJQ==
   dependencies:
     "@types/node" "*"
 
