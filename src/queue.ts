@@ -4,7 +4,7 @@ import { AsyncMessage, Connection, ConsumerStatus } from 'rabbitmq-client';
 import LineByLine from 'line-by-line';
 export { ActionMessage, ActionMessageV2, ProcessStage } from './actionMessage';
 
-import { ActionMessage, actionMessageV1to2 } from './actionMessage';
+import { ActionMessage, ActionMessageV2, actionMessageV1to2 } from './actionMessage';
 
 import { ConsumerOpts, SyncCallback, Counters } from './types';
 
@@ -98,6 +98,15 @@ export const syncQueue = async (
         action = actionMessageV1to2(action);
       }
 
+      if (action as ActionMessageV2) { // make it easier to process by moving the id to their objects
+        action.campaign.id=action.campaignId;
+        if (action.action) 
+          action.action.id=action.actionId;
+        if (action.org) 
+          action.org.id=action.orgId;
+        if (action.actionPage)
+          action.actionPage.id=action.actionPageId;
+      }
       // optional decrypt
       if (action.personalInfo && opts?.keyStore) {
         const plainPII = decryptPersonalInfo(

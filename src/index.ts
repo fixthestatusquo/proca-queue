@@ -4,7 +4,7 @@ export { pause } from "./utils";
 
 export { actionMessageV1to2 } from "./actionMessage";
 
-export type { ActionMessage, ActionMessageV1, ActionMessageV2 } from "./actionMessage";
+export type { ActionMessage, ActionMessageV1, ActionMessageV2, Campaign, ContactV2 as Contact } from "./actionMessage";
 
 export type { EventMessageV2 } from "./eventMessage";
 

@@ -31,17 +31,19 @@ export type ContactV2 = {
 // address: {region, locality, street, streetNumber}
 // but it can differ for different PII schema
 
-type Campaign = {
+export type Campaign = {
   title: string; // long name
   name: string; // technical name
   externalId: number; // can be set by owner of campaign
+  id?: number, //convenience, copy of campaignId set elsewhere in the message
 };
 
-type ActionPage = {
+export type ActionPage = {
   locale: string; // language or full locale eg: pl, de_AT
   name: string; // technical name
   thankYouTemplate: string; // name of thank you template
   thankYouTemplateRef: string; // backwards compatibility - id of tempalte resolved from Mailjet etc
+  id?: number, //convenience, copy of actionPageId set elsewhere in the message
 };
 
 type ActionV1 = {
@@ -53,7 +55,8 @@ type ActionV1 = {
   testing: boolean;
 };
 
-type ActionV2 = {
+export type ActionV2 = {
+  id?: number, //convenience, copy of actionId set elsewhere in the message
   actionType: string;
   customFields: {
     [key: string]: string | number | boolean | string[] | number[];
@@ -62,7 +65,13 @@ type ActionV2 = {
   testing: boolean; // is this a test action? (to be discarded)
 };
 
-type Tracking = {
+export type Organisation = {
+  name: string,
+  title: string,
+  id?: number, //convenience, copy of actionId set elsewhere in the message
+}
+
+export type Tracking = {
   source: string; // utm_*
   medium: string;
   campaign: string;
@@ -108,6 +117,8 @@ export type ActionMessageV2 = {
   actionId: number;
   actionPageId: number;
   campaignId: number;
+  orgId: number;
+  org:Organisation;
   // orgId: number,
   action: ActionV2;
   contact: ContactV2;
@@ -149,6 +160,8 @@ export const actionMessageV1to2 = (a1: ActionMessageV1): ActionMessageV2 => {
     actionPageId: a1.actionPageId,
     campaign: a1.campaign,
     campaignId: a1.campaignId,
+    orgId: 1,
+    org: {name: '',title: ''},
     action: {
       actionType: a1.action.actionType,
       createdAt: a1.action.createdAt,
