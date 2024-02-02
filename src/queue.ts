@@ -11,6 +11,11 @@ import { ConsumerOpts, SyncCallback, Counters } from './types';
 import os from 'os';
 
 let connection: any = null;
+
+const listeners: any = []; // functions to be called when a new connection is created
+
+export const listenConnection = (fct:any) => listeners.push(fct);
+
 let consumer: any = null;
 export const count: Counters = {queued : undefined, ack: 0, nack: 0};
 
@@ -38,6 +43,7 @@ export const connect = (queueUrl: string) => {
   });
   rabbit.on('connection', () => {
     console.log('Connection successfully (re)established');
+    listeners.forEach ((d:any) => d(connection));
 //await ch.close()
   });
 

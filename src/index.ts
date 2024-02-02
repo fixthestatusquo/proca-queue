@@ -1,4 +1,4 @@
-export { connect, syncFile, syncQueue, testQueue, count } from "./queue";
+export { connect, listenConnection, syncFile, syncQueue, testQueue, count } from "./queue";
 
 export { pause } from "./utils";
 
