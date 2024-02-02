@@ -57,7 +57,7 @@
     "size-limit": "^7.0.8",
     "tsdx": "^0.14.1",
     "tslib": "^2.6.2",
-    "tsup": "^7.2.0",
+    "tsup": "^8.0.1",
     "typescript": "^5.2.2"
   },
   "dependencies": {
