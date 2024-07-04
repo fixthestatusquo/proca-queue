@@ -7,7 +7,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "cross-env NODE_ENV=production tsup-node",
+    "_build": "cross-env NODE_ENV=production tsup-node",
+    "build": "node src/esbuild.mjs",
     "build:dev": " cross-env NODE_ENV=development tsup-node",
     "coverage": "vitest run --coverage",
     "dev": "node-dev dist/main.js",
@@ -21,7 +22,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "pnpm format && pnpm lint",
+      "pre-commit": "npm run format && npm run lint",
       "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
     }
   },
@@ -51,7 +52,7 @@
     "@typescript-eslint/parser": "^5.62.0",
     "cross-env": "^7.0.3",
     "dprint": "^0.41.0",
-    "esbuild": "^0.19.11",
+    "esbuild": "^0.19.12",
     "eslint": "^8.51.0",
     "husky": "^8.0.3",
     "size-limit": "^7.0.8",

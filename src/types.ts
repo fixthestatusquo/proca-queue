@@ -1,5 +1,5 @@
 import { KeyStore } from "@proca/crypto";
-import { ActionMessageV2 } from "./actionMessage";
+import { ActionMessage } from "./actionMessage";
 import { EventMessageV2 } from "./eventMessage";
 
 export type DecryptOpts = {
@@ -18,7 +18,7 @@ export type SyncResult = {
   processed: boolean;
 }
 
-export type SyncCallback = (action: ActionMessageV2 | EventMessageV2) => Promise<SyncResult | boolean>;
+export type SyncCallback = (action: ActionMessage | EventMessageV2) => Promise<SyncResult | boolean>;
 
 export type Counters = {
   ack: number;

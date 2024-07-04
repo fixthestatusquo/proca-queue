@@ -118,7 +118,7 @@ export type ActionMessageV2 = {
   actionPageId: number;
   campaignId: number;
   orgId: number;
-  org:Organisation;
+  org: Organisation;
   // orgId: number,
   action: ActionV2;
   contact: ContactV2;
@@ -131,7 +131,7 @@ export type ActionMessageV2 = {
   stage: ProcessStage;
 };
 
-export const actionMessageV1to2 = (a1: ActionMessageV1): ActionMessageV2 => {
+export const actionMessageV1to2 = (a1: ActionMessageV1): ActionMessage => {
   let pii = {};
   let personalInfo: PersonalInfo | null = null;
 
@@ -161,7 +161,7 @@ export const actionMessageV1to2 = (a1: ActionMessageV1): ActionMessageV2 => {
     campaign: a1.campaign,
     campaignId: a1.campaignId,
     orgId: 1,
-    org: {name: '',title: ''},
+    org: { name: '', title: '' },
     action: {
       actionType: a1.action.actionType,
       createdAt: a1.action.createdAt,
