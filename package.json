@@ -58,7 +58,7 @@
     "tsdx": "^0.14.1",
     "tslib": "^2.6.2",
     "tsup": "^8.0.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5.5.4"
   },
   "dependencies": {
     "@proca/crypto": "^3.4.0",
