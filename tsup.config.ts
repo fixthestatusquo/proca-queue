@@ -12,6 +12,7 @@ export const tsup: Options = {
   bundle: true,
   skipNodeModulesBundle: true,
   entryPoints: ["src/index.ts"],
+  outExtension: ({ format }) => ({ js: format === 'cjs' ? '.cjs' : '.mjs' }),
   watch: env === "development",
   target: "node16",
 };

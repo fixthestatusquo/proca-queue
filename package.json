@@ -1,14 +1,22 @@
 {
-  "version": "5.2.3",
+  "version": "5.2.4",
   "license": "AGPL-3.0",
-  "main": "dist/index.js",
   "typings": "dist/index.d.ts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "exports": {
+    ".": {
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "files": [
     "dist"
   ],
   "scripts": {
-    "_build": "cross-env NODE_ENV=production tsup-node",
-    "build": "node src/esbuild.mjs",
+    "build": "cross-env NODE_ENV=production tsup-node",
+    "esbuild": "node src/esbuild.mjs",
     "build:dev": " cross-env NODE_ENV=development tsup-node",
     "coverage": "vitest run --coverage",
     "dev": "node-dev dist/main.js",
@@ -34,14 +42,9 @@
   },
   "name": "@proca/queue",
   "author": "Marcin Koziej",
-  "module": "dist/queue.esm.js",
   "size-limit": [
     {
-      "path": "dist/queue.cjs.production.min.js",
-      "limit": "10 KB"
-    },
-    {
-      "path": "dist/queue.esm.js",
+      "path": "dist/index.mjs",
       "limit": "10 KB"
     }
   ],
