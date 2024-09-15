@@ -105,7 +105,8 @@ export const syncQueue = async (
       //      }
 
       if (action as ActionMessageV2) { // make it easier to process by moving the id to their objects
-        action.campaign.id = action.campaignId;
+        if (action.campaign)
+          action.campaign.id = action.campaignId;
         if (action.action)
           action.action.id = action.actionId;
         if (action.org)
