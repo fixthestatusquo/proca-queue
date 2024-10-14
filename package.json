@@ -33,6 +33,20 @@
       "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
     }
   },
+  "keywords": [
+    "petition",
+    "proca",
+    "campaigning",
+    "digital-engagement",
+    "social-change",
+    "nonprofit",
+    "civic-tech",
+    "mobilisation",
+    "advocacy",
+    "activism",
+    "email-campaign",
+    "grassroots"
+  ],
   "prettier": {
     "printWidth": 80,
     "semi": true,
