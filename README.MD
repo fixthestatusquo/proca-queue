@@ -8,7 +8,8 @@ if you intend to sync with a crm, you might want to start [with this higher leve
 ## TypeScript types
 
 - `ActionMessageV2` - a type describing message with an action data
-- `EventMessageV2` - a type describing message with an event data
+- `EventMessageV2` - a type describing message with an event supporter email_status changed data
+- `CampaignUpdated` - a type describing message with an event campaign updated data
 
 ## Functions
 
@@ -20,7 +21,7 @@ if you intend to sync with a crm, you might want to start [with this higher leve
     - `keyStore` - decryption key store (see `@proca/crypto` module) if PII of supporters is to be decrypted
 
   - Callback signature is: `async callback(action : ActionMessageV2 | EventMessageV2)`
-  
+
   - it returns boolean (or {processed:boolean{) if false, the message is nacked. if it's the first time the message has been processed, it is directly requeued, otherwise, it's dropped (pushed in the dead-letter queue and replayed later)
 
   - if this function throw an error, we are going to close the connection
