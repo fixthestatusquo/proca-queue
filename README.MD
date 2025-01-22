@@ -9,7 +9,7 @@ if you intend to sync with a crm, you might want to start [with this higher leve
 
 - `ActionMessageV2` - a type describing message with an action data
 - `EventMessageV2` - a type describing message with an event supporter email_status changed data
-- `CampaignUpdated` - a type describing message with an event campaign updated data
+- `CampaignUpdatedEventMessage` - a type describing message with an event campaign updated data
 
 ## Functions
 
