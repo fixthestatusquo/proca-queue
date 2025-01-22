@@ -20,7 +20,7 @@ export type EventMessageV2 = {
 
 type Json = Record<string, any>;
 
-type Campaign = {
+type CampaignMessage = {
   config: Json; // JSON object with arbitrary structure
   contactSchema: string; // e.g., "basic"
   externalId: number;
@@ -33,8 +33,8 @@ type Campaign = {
   title: string;
 };
 
-export type CampaignUpdateEvent = {
-  campaign: Campaign;
+export type CampaignUpdatedEventMessage = {
+  campaign: CampaignMessage;
   campaignId: number;
   eventType: string; // e.g., "campaign_updated"
   orgId: number;
