@@ -23,7 +23,7 @@
     "eslint": "eslint src --ext .ts",
     "noprepare": "husky install",
     "semantic-release": "semantic-release",
-    "test": "vitest",
+    "test": "tsx src/test.ts",
     "size": "size-limit",
     "analyze": "size-limit --why"
   },
