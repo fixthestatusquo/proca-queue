@@ -72,7 +72,7 @@
     "@types/eslint__js": "^8.42.3",
     "@types/line-by-line": "^0.1.9",
     "cross-env": "^7.0.3",
-    "dprint": "^0.47.2",
+    "dprint": "^0.49.1",
     "esbuild": "^0.24.0",
     "eslint": "9.25.0",
     "eslint-plugin-react-hooks": "^5.1.0",
