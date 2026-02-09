@@ -1,6 +1,6 @@
-import { KeyStore } from "@proca/crypto";
-import { ActionMessage } from "./actionMessage";
-import { EventMessageV2, CampaignUpdatedEventMessage } from "./events";
+import { KeyStore } from '@proca/crypto';
+import { ActionMessage } from './actionMessage';
+import { Event } from './events';
 
 export type DecryptOpts = {
   decrypt?: boolean;
@@ -16,9 +16,11 @@ export type ConsumerOpts = {
 
 export type SyncResult = {
   processed: boolean;
-}
+};
 
-export type SyncCallback = (action: ActionMessage | EventMessageV2 | CampaignUpdatedEventMessage) => Promise<SyncResult | boolean>;
+export type SyncCallback = (
+  action: ActionMessage | Event
+) => Promise<SyncResult | boolean>;
 
 export type Counters = {
   ack: number;
