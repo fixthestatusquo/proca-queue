@@ -60,22 +60,6 @@ export const connect = (queueUrl: string) => {
   return rabbit as any;
 };
 
-export async function testQueue(queueUrl: string, queueName: string) {
-  throw new Error("it shouldn't call testQueue " + queueUrl + ':' + queueName);
-
-  /*
-  const conn = await connect(queueUrl)
-  const ch = await conn.createChannel()
-  try {
-    const status = await ch.checkQueue(queueName)
-    return status
-  } finally {
-    ch.close()
-    conn.close()
-  }
-  */
-}
-
 export const syncQueue = async (
   queueUrl: string,
   queueName: string,
@@ -100,13 +84,19 @@ export const syncQueue = async (
       qos: { prefetchCount: prefetch },
     },
     async (message: AsyncMessage) => {
-      // The message is automatically acknowledged when this function ends.
       // If this function throws an error, then message is NACK'd (rejected) and
       // possibly requeued or sent to a dead-letter exchange
       const msg = JSON.parse(message.body.toString());
 
+      // if the message is unknown, drop and log but do not crash
       if (msg?.schema !== 'proca:action:2' && msg?.schema !== 'proca:event:2') {
-        throw new Error(`Unknown message schema: ${JSON.stringify(msg)}`);
+        console.error('unknown message schema', msg?.schema);
+        count.nack++;
+        if (message.redelivered) {
+          console.error('already requeued once, dropping');
+          return ConsumerStatus.DROP;
+        }
+        return ConsumerStatus.REQUEUE;
       }
 
       if (msg.schema === 'proca:action:2') {
@@ -122,7 +112,11 @@ export const syncQueue = async (
         }
       }
       try {
-        // we expect the syncer to return boolean. Anything else will trigger an error and a shutdown
+        // we expect the syncer to return boolean.
+        // - return true  → ACK
+        // - return false → NACK / requeue
+        // - throw or return non-boolean → process exits immediately
+
         const result = await syncer(msg);
 
         if (result === true) {
@@ -153,8 +147,8 @@ export const syncQueue = async (
         );
       } catch (e) {
         // if the syncer throw an error it's a permanent problem, we need to close
-        console.error('fatal error processing, we should close?', e);
-        return ConsumerStatus.DROP; // no requeue
+        console.error('fatal error processing:', e);
+        process.exit(1);
       }
     }
   );
