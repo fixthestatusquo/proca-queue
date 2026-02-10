@@ -102,30 +102,37 @@ export const syncQueue = async (
       consumerTag: tag,
       qos: { prefetchCount: prefetch },
     },
-    async (msg: AsyncMessage) => {
+    async (message: AsyncMessage) => {
       // The message is automatically acknowledged when this function ends.
-      // If this function throws an error, then msg is NACK'd (rejected) and
+      // If this function throws an error, then message is NACK'd (rejected) and
       // possibly requeued or sent to a dead-letter exchange
-      const action = JSON.parse(msg.body.toString());
+      const msg = JSON.parse(message.body.toString());
 
-      if (action.schema === 'proca:action:2') {
+      if (!msg.schema) {
+        throw new Error(`missing message schema: ${JSON.stringify(msg)}`);
+      }
+
+      if (msg.schema === 'proca:action:1') {
+        throw new Error(
+          'legacy action message detected (proca:action:1) — this is a regression'
+        );
+      }
+
+      if (msg.schema === 'proca:action:2') {
         // make it easier to process by moving the id to their objects
-        if (action.campaign) action.campaign.id = action.campaignId;
-        if (action.action) action.action.id = action.actionId;
-        if (action.org) action.org.id = action.orgId;
-        if (action.actionPage) action.actionPage.id = action.actionPageId;
+        if (msg.campaign) msg.campaign.id = msg.campaignId;
+        if (msg.action) msg.action.id = msg.actionId;
+        if (msg.org) msg.org.id = msg.orgId;
+        if (msg.actionPage) msg.actionPage.id = msg.actionPageId;
         // optional decrypt
-        if (action.personalInfo && opts?.keyStore) {
-          const plainPII = decryptPersonalInfo(
-            action.personalInfo,
-            opts.keyStore
-          );
-          action.contact = { ...action.contact, ...plainPII };
+        if (msg.personalInfo && opts?.keyStore) {
+          const plainPII = decryptPersonalInfo(msg.personalInfo, opts.keyStore);
+          msg.contact = { ...msg.contact, ...plainPII };
         }
       }
       try {
         // we expect the syncer to return boolean. Anything else will trigger an error and a shutdown
-        const result = await syncer(action);
+        const result = await syncer(msg);
 
         if (result === true) {
           count.ack++;
@@ -135,17 +142,17 @@ export const syncQueue = async (
         if (result === false) {
           count.nack++;
 
-          if (msg.redelivered) {
+          if (message.redelivered) {
             console.error(
               'already requeued, push to dead-letter',
-              action?.actionId ? 'Action Id:' + action.actionId : '!'
+              msg?.actionId ? 'Action Id:' + msg.actionId : '!'
             );
             return ConsumerStatus.DROP;
           }
 
           console.error(
             'syncer returned false, nack and requeue',
-            action?.actionId ? 'Action Id:' + action.actionId : '!'
+            msg?.actionId ? 'Action Id:' + msg.actionId : '!'
           );
           return ConsumerStatus.REQUEUE;
         }
