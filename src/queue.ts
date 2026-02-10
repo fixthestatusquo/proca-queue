@@ -60,6 +60,20 @@ export const connect = (queueUrl: string) => {
   return rabbit as any;
 };
 
+const requeueOnceOrDrop = (
+  message: AsyncMessage,
+  reason: string = 'unknown reason'
+): ConsumerStatus => {
+  console.error(reason);
+  count.nack++;
+
+  if (message.redelivered) {
+    console.error('already requeued, push to dead-letter');
+    return ConsumerStatus.DROP;
+  }
+  return ConsumerStatus.REQUEUE;
+};
+
 export const syncQueue = async (
   queueUrl: string,
   queueName: string,
@@ -92,30 +106,20 @@ export const syncQueue = async (
       try {
         msg = JSON.parse(message.body.toString());
       } catch {
-        console.error(
-          'invalid JSON payload, cannot parse, rejecting',
-          message.body.toString().slice(0, 512)
+        return requeueOnceOrDrop(
+          message,
+          `invalid JSON payload, cannot parse ${message.body
+            .toString()
+            .slice(0, 512)}`
         );
-
-        count.nack++;
-
-        if (message.redelivered) {
-          console.error('already redelivered once, dropping');
-          return ConsumerStatus.DROP;
-        }
-
-        return ConsumerStatus.REQUEUE;
       }
 
       // if the message is unknown, drop and log but do not crash
       if (msg?.schema !== 'proca:action:2' && msg?.schema !== 'proca:event:2') {
-        console.error('unknown message schema', msg?.schema);
-        count.nack++;
-        if (message.redelivered) {
-          console.error('already requeued once, dropping');
-          return ConsumerStatus.DROP;
-        }
-        return ConsumerStatus.REQUEUE;
+        return requeueOnceOrDrop(
+          message,
+          `unknown schema "${msg?.schema || JSON.stringify(msg).slice(0, 512)}"`
+        );
       }
 
       if (msg.schema === 'proca:action:2') {
@@ -144,21 +148,10 @@ export const syncQueue = async (
         }
 
         if (result === false) {
-          count.nack++;
-
-          if (message.redelivered) {
-            console.error(
-              'already requeued, push to dead-letter',
-              msg?.actionId ? 'Action Id:' + msg.actionId : '!'
-            );
-            return ConsumerStatus.DROP;
-          }
-
-          console.error(
-            'syncer returned false, nack and requeue',
-            msg?.actionId ? 'Action Id:' + msg.actionId : '!'
+          return requeueOnceOrDrop(
+            message,
+            `syncer returned false for message ${msg?.actionId ?? msg}`
           );
-          return ConsumerStatus.REQUEUE;
         }
 
         throw new Error(
