@@ -124,14 +124,9 @@ export const syncQueue = async (
         }
       }
       try {
+        // we expect the syncer to return boolean. Anything else will trigger an error and a shutdown
         const processed = await syncer(action);
-        if (typeof processed !== 'boolean') {
-          console.error(
-            `Returned value must be boolean. Nack action, actionId: ${action.actionId}):`
-          );
-          rabbit.close(); // we need to shutdown
-          throw new Error('the syncer must return a boolean');
-        }
+
         if (!processed) {
           count.nack++;
           if (msg.redelivered) {

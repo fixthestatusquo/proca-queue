@@ -14,13 +14,7 @@ export type ConsumerOpts = {
   tag?: string; // custom name for the consumer, package name by default
 };
 
-export type SyncResult = {
-  processed: boolean;
-};
-
-export type SyncCallback = (
-  action: ActionMessage | Event
-) => Promise<SyncResult | boolean>;
+export type SyncCallback = (action: ActionMessage | Event) => Promise<boolean>;
 
 export type Counters = {
   ack: number;
