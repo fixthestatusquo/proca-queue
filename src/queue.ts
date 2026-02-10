@@ -1,14 +1,11 @@
 import { decryptPersonalInfo } from '@proca/crypto';
 import { AsyncMessage, Connection, ConsumerStatus } from 'rabbitmq-client';
 
-import LineByLine from 'line-by-line';
 export {
   ActionMessageV2 as ActionMessage,
   ActionMessageV2,
   ProcessStage,
 } from './actionMessage';
-
-import { ActionMessageV2 } from './actionMessage';
 
 import { ConsumerOpts, SyncCallback, Counters } from './types';
 
@@ -181,30 +178,4 @@ export const syncQueue = async (
     console.log('rabbit error', err);
   });
   consumer = sub; // global
-};
-
-export const syncFile = (
-  filePath: string,
-  syncer: SyncCallback,
-  opts?: ConsumerOpts
-) => {
-  const lines = new LineByLine(filePath);
-
-  lines.on('line', async l => {
-    let action: ActionMessageV2 = JSON.parse(l);
-
-    //    if (action.schema === 'proca:action:1') {
-    //      action = actionMessageV1to2(action);
-    //    }
-
-    // optional decrypt
-    if (action.personalInfo && opts?.keyStore) {
-      const plainPII = decryptPersonalInfo(action.personalInfo, opts.keyStore);
-      action.contact = { ...action.contact, ...plainPII };
-    }
-
-    lines.pause();
-    await syncer(action);
-    lines.resume();
-  });
 };
