@@ -52,10 +52,11 @@ export const connect = (queueUrl: string) => {
     //await ch.close()
   });
 
-  process.once('SIGINT', exitHandler),
-    ['uncaughtException', 'unhandledRejection', 'SIGTERM'].forEach(evt =>
-      process.on(evt, exitHandler)
-    );
+  process.once('SIGINT', exitHandler);
+
+  ['uncaughtException', 'unhandledRejection', 'SIGTERM'].forEach(evt => {
+    process.on(evt, exitHandler);
+  });
 
   return rabbit as any;
 };
