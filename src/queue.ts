@@ -2,7 +2,11 @@ import { decryptPersonalInfo } from '@proca/crypto';
 import { AsyncMessage, Connection, ConsumerStatus } from 'rabbitmq-client';
 
 import LineByLine from 'line-by-line';
-export { ActionMessageV2 as ActionMessage, ActionMessageV2, ProcessStage } from './actionMessage';
+export {
+  ActionMessageV2 as ActionMessage,
+  ActionMessageV2,
+  ProcessStage,
+} from './actionMessage';
 
 import { ActionMessageV2 } from './actionMessage';
 
@@ -22,7 +26,12 @@ export const count: Counters = { queued: undefined, ack: 0, nack: 0 };
 async function exitHandler(evtOrExitCodeOrError: number | string | Error) {
   try {
     if (connection) {
-      console.log('closing after processing', count.ack, "and rejecting", count.nack);
+      console.log(
+        'closing after processing',
+        count.ack,
+        'and rejecting',
+        count.nack
+      );
       await consumer.close();
       await connection.close();
     }
@@ -32,13 +41,12 @@ async function exitHandler(evtOrExitCodeOrError: number | string | Error) {
     console.error('EXIT HANDLER ERROR', e);
     process.exit(isNaN(+evtOrExitCodeOrError) ? 1 : +evtOrExitCodeOrError);
   }
-
 }
 
 export const connect = (queueUrl: string) => {
   const rabbit = new Connection(queueUrl);
   connection = rabbit; // global
-  rabbit.on('error', (err) => {
+  rabbit.on('error', err => {
     console.log('RabbitMQ connection error', err);
   });
   rabbit.on('connection', () => {
@@ -48,7 +56,7 @@ export const connect = (queueUrl: string) => {
   });
 
   process.once('SIGINT', exitHandler),
-    ['uncaughtException', 'unhandledRejection', 'SIGTERM'].forEach((evt) =>
+    ['uncaughtException', 'unhandledRejection', 'SIGTERM'].forEach(evt =>
       process.on(evt, exitHandler)
     );
 
@@ -82,7 +90,8 @@ export const syncQueue = async (
   const rabbit = await connect(queueUrl);
 
   // get host name
-  const tag = os.hostname() + '.' + (opts?.tag ? opts.tag : process.env.npm_package_name);
+  const tag =
+    os.hostname() + '.' + (opts?.tag ? opts.tag : process.env.npm_package_name);
   const sub = rabbit.createConsumer(
     {
       queue: queueName,
@@ -97,22 +106,14 @@ export const syncQueue = async (
       // The message is automatically acknowledged when this function ends.
       // If this function throws an error, then msg is NACK'd (rejected) and
       // possibly requeued or sent to a dead-letter exchange
-      let action: ActionMessageV2 = JSON.parse(msg.body.toString());
+      const action = JSON.parse(msg.body.toString());
 
-      // upgrade old v1 message format to v2, will add it if I can stop typescript to freak out
-      //      if (action.schema === 'proca:action:1') {
-      //        action = actionMessageV1to2(action);
-      //      }
-
-      if (action as ActionMessageV2) { // make it easier to process by moving the id to their objects
-        if (action.campaign)
-          action.campaign.id = action.campaignId;
-        if (action.action)
-          action.action.id = action.actionId;
-        if (action.org)
-          action.org.id = action.orgId;
-        if (action.actionPage)
-          action.actionPage.id = action.actionPageId;
+      if (action.schema === 'proca:action:2') {
+        // make it easier to process by moving the id to their objects
+        if (action.campaign) action.campaign.id = action.campaignId;
+        if (action.action) action.action.id = action.actionId;
+        if (action.org) action.org.id = action.orgId;
+        if (action.actionPage) action.actionPage.id = action.actionPageId;
         // optional decrypt
         if (action.personalInfo && opts?.keyStore) {
           const plainPII = decryptPersonalInfo(
@@ -129,16 +130,22 @@ export const syncQueue = async (
             `Returned value must be boolean. Nack action, actionId: ${action.actionId}):`
           );
           rabbit.close(); // we need to shutdown
-          throw new Error("the syncer must return a boolean");
+          throw new Error('the syncer must return a boolean');
         }
         if (!processed) {
           count.nack++;
           if (msg.redelivered) {
-            console.error('already requeued, push to dead-letter', action?.actionId ? 'Action Id:' + action.actionId : '!');
+            console.error(
+              'already requeued, push to dead-letter',
+              action?.actionId ? 'Action Id:' + action.actionId : '!'
+            );
             return ConsumerStatus.DROP;
           }
           // nack
-          console.error('we need to nack and requeue', action?.actionId ? 'Action Id:' + action.actionId : '!');
+          console.error(
+            'we need to nack and requeue',
+            action?.actionId ? 'Action Id:' + action.actionId : '!'
+          );
           return ConsumerStatus.REQUEUE; // nack + requeue
         }
         count.ack++;
@@ -151,18 +158,18 @@ export const syncQueue = async (
       // returning a false or {processed:false}-> message should be nacked
       console.error('we should not be there');
       rabbit.close(); // we need to shutdown
-      throw new Error("message not properly processed #" + action?.actionId);
+      throw new Error('message not properly processed #' + action?.actionId);
     }
   );
 
   const messageCount = async () => {
     const { messageCount } = await sub._ch.queueDeclare({
       queue: sub._queue,
-      passive: true
-    })
-    console.log("messages in the queue", messageCount);
+      passive: true,
+    });
+    console.log('messages in the queue', messageCount);
     count.queued = messageCount;
-  }
+  };
 
   sub.on('ready', async () => {
     await messageCount();
@@ -183,7 +190,7 @@ export const syncFile = (
 ) => {
   const lines = new LineByLine(filePath);
 
-  lines.on('line', async (l) => {
+  lines.on('line', async l => {
     let action: ActionMessageV2 = JSON.parse(l);
 
     //    if (action.schema === 'proca:action:1') {
