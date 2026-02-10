@@ -108,14 +108,8 @@ export const syncQueue = async (
       // possibly requeued or sent to a dead-letter exchange
       const msg = JSON.parse(message.body.toString());
 
-      if (!msg.schema) {
-        throw new Error(`missing message schema: ${JSON.stringify(msg)}`);
-      }
-
-      if (msg.schema === 'proca:action:1') {
-        throw new Error(
-          'legacy action message detected (proca:action:1) — this is a regression'
-        );
+      if (msg?.schema !== 'proca:action:2' && msg?.schema !== 'proca:event:2') {
+        throw new Error(`Unknown message schema: ${JSON.stringify(msg)}`);
       }
 
       if (msg.schema === 'proca:action:2') {
