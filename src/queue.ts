@@ -86,7 +86,26 @@ export const syncQueue = async (
     async (message: AsyncMessage) => {
       // If this function throws an error, then message is NACK'd (rejected) and
       // possibly requeued or sent to a dead-letter exchange
-      const msg = JSON.parse(message.body.toString());
+
+      let msg: any;
+
+      try {
+        msg = JSON.parse(message.body.toString());
+      } catch {
+        console.error(
+          'invalid JSON payload, cannot parse, rejecting',
+          message.body.toString().slice(0, 512)
+        );
+
+        count.nack++;
+
+        if (message.redelivered) {
+          console.error('already redelivered once, dropping');
+          return ConsumerStatus.DROP;
+        }
+
+        return ConsumerStatus.REQUEUE;
+      }
 
       // if the message is unknown, drop and log but do not crash
       if (msg?.schema !== 'proca:action:2' && msg?.schema !== 'proca:event:2') {
