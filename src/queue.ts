@@ -150,10 +150,6 @@ export const syncQueue = async (
         console.error('fatal error processing, we should close?', e);
         return ConsumerStatus.DROP; // no requeue
       }
-      // returning a false or {processed:false}-> message should be nacked
-      console.error('we should not be there');
-      rabbit.close(); // we need to shutdown
-      throw new Error('message not properly processed #' + action?.actionId);
     }
   );
 
