@@ -125,10 +125,16 @@ export const syncQueue = async (
       }
       try {
         // we expect the syncer to return boolean. Anything else will trigger an error and a shutdown
-        const processed = await syncer(action);
+        const result = await syncer(action);
 
-        if (!processed) {
+        if (result === true) {
+          count.ack++;
+          return ConsumerStatus.ACK;
+        }
+
+        if (result === false) {
           count.nack++;
+
           if (msg.redelivered) {
             console.error(
               'already requeued, push to dead-letter',
@@ -136,15 +142,17 @@ export const syncQueue = async (
             );
             return ConsumerStatus.DROP;
           }
-          // nack
+
           console.error(
-            'we need to nack and requeue',
+            'syncer returned false, nack and requeue',
             action?.actionId ? 'Action Id:' + action.actionId : '!'
           );
-          return ConsumerStatus.REQUEUE; // nack + requeue
+          return ConsumerStatus.REQUEUE;
         }
-        count.ack++;
-        return ConsumerStatus.ACK;
+
+        throw new Error(
+          `syncer must return boolean, got: ${JSON.stringify(result)}`
+        );
       } catch (e) {
         // if the syncer throw an error it's a permanent problem, we need to close
         console.error('fatal error processing, we should close?', e);
