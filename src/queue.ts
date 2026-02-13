@@ -1,5 +1,10 @@
 import { decryptPersonalInfo } from '@proca/crypto';
-import { AsyncMessage, Connection, ConsumerStatus } from 'rabbitmq-client';
+import {
+  AsyncMessage,
+  Connection,
+  ConsumerStatus,
+  Consumer,
+} from 'rabbitmq-client';
 
 export {
   ActionMessageV2 as ActionMessage,
@@ -11,13 +16,13 @@ import { ConsumerOpts, SyncCallback, Counters } from './types';
 
 import os from 'os';
 
-let connection: any = null;
+let connection: Connection | null = null;
+let consumer: Consumer | null = null;
 
 const listeners: any = []; // functions to be called when a new connection is created
 
 export const listenConnection = (fct: any) => listeners.push(fct);
 
-let consumer: any = null;
 export const count: Counters = { queued: undefined, ack: 0, nack: 0 };
 
 async function exitHandler(
@@ -86,16 +91,33 @@ const requeueOnceOrDrop = (
   return ConsumerStatus.REQUEUE;
 };
 
+export const isPositiveInt = (value: number, name = 'value') => {
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(`${name} must be a positive integer (> 0), got ${value}`);
+  }
+  return value;
+};
+
 export const syncQueue = async (
   queueUrl: string,
   queueName: string,
   syncer: SyncCallback,
   opts?: ConsumerOpts
 ) => {
-  const concurrency = opts?.concurrency || 1;
-  const prefetch = opts?.prefetch || 2 * concurrency;
+  // might be an overkill but want to be sure that invalid options not cause unexpected behavior
+  const concurrency = opts?.concurrency
+    ? isPositiveInt(opts.concurrency, 'concurrency')
+    : isPositiveInt(1, 'concurrency');
+
+  const prefetch = opts?.prefetch
+    ? isPositiveInt(opts.prefetch, 'prefetch')
+    : isPositiveInt(2 * concurrency, 'prefetch');
+
+  const maxRetries = opts?.maxRetries
+    ? isPositiveInt(opts.maxRetries, 'maxRetries')
+    : null;
+
   const rabbit = await connect(queueUrl);
-  const maxRetries = opts?.maxRetries ?? null;
 
   // get host name
   const tag =

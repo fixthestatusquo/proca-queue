@@ -15,7 +15,7 @@ export type ConsumerOpts = {
   maxRetries?: number; // max retries before dropping a message, default is 5
 };
 
-export type SyncCallback = (action: ActionMessage | Event) => Promise<boolean>;
+export type SyncCallback = (message: ActionMessage | Event) => Promise<boolean>;
 
 export type Counters = {
   ack: number;
