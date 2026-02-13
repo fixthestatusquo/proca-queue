@@ -3,19 +3,23 @@
 ## 1. Connection & Startup
 
 1. The service connects to RabbitMQ using `connect(queueUrl)`
-2. Signal and process handlers are registered:
 
+2. Signal and process handlers are registered:
    - `SIGINT`, `SIGTERM` → graceful shutdown
    - `uncaughtException`, `unhandledRejection` → log and exit
 
 3. A consumer is created with:
-
    - `noAck: false`
    - `requeue: false`
    - bounded `concurrency`
    - `prefetch = 2 × concurrency`
+   - consumer tag = `<hostname>.<tag || package name>`
 
-On startup, the consumer logs the **current queue depth**.
+4. Consumer options are validated:
+   - `concurrency`, `prefetch`, `maxRetries` must be **positive integers (> 0)**
+   - invalid values throw at startup
+
+On startup, the consumer logs the **queue depth if available** from consumer stats.
 
 ---
 
@@ -23,24 +27,43 @@ On startup, the consumer logs the **current queue depth**.
 
 For each message received:
 
-1. The message body is parsed as JSON
+### 2.1 Retry limit guard (`x-death` header)
 
-   - ❌ Invalid JSON → **NACK**
-   - First failure → **requeue**
-   - Redelivered → **dead-letter**
+If `maxRetries` is configured:
 
-2. The message schema is validated
-   Accepted schemas:
+- retry count is read from `message.headers['x-death'][0].count`
+- if retry count **exceeds maxRetries**:
 
-   - `proca:action:2`
+```
+ACK and drop (message considered permanently failed)
+```
 
-   - `proca:event:2`
+No further processing occurs.
 
-   - ❌ Unknown schema → **NACK**
+---
 
-   - First failure → **requeue**
+### 2.2 JSON parsing
 
-   - Redelivered → **dead-letter**
+The message body is parsed as JSON.
+
+- ❌ Invalid JSON → **NACK**
+- First failure → **requeue**
+- Redelivered → **dead-letter**
+
+---
+
+### 2.3 Schema validation
+
+Accepted schemas:
+
+- `proca:action:2`
+- `proca:event:2`
+
+If schema is unknown:
+
+- ❌ Unknown schema → **NACK**
+- First failure → **requeue**
+- Redelivered → **dead-letter**
 
 ---
 
@@ -48,17 +71,29 @@ For each message received:
 
 If `schema === proca:action:2`:
 
-- IDs are copied into their nested objects for convenience:
+### ID normalization
 
-  - `campaign.id`
-  - `action.id`
-  - `org.id`
-  - `actionPage.id`
+IDs are copied into nested objects for convenience:
 
-- If a keystore is configured:
+- `campaign.id`
+- `action.id`
+- `org.id`
+- `actionPage.id`
 
-  - `personalInfo` is decrypted
-  - decrypted fields are merged into `contact`
+---
+
+### Optional PII decryption
+
+If:
+
+- `personalInfo` exists
+- `keyStore` is configured
+
+Then:
+
+- `personalInfo` is decrypted
+- decrypted fields are merged into `contact`
+- decrypted values overwrite existing fields
 
 No side effects occur at this stage.
 
@@ -66,25 +101,46 @@ No side effects occur at this stage.
 
 ## 4. Business Processing (`syncer`)
 
-The normalized message is passed to the user-provided `syncer(msg)`.
+The normalized message is passed to the user-provided:
+
+```
+await syncer(msg)
+```
 
 ### Expected contract
 
-The `syncer` **must** return a boolean:
+The `syncer` **must return a boolean**.
 
-| syncer result                 | Consumer behavior                       |
-| ----------------------------- | --------------------------------------- |
-| `true`                        | **ACK** (message removed from queue)    |
-| `false`                       | **NACK** (retry once, then dead-letter) |
-| throws or returns non-boolean | **Fatal error → process exit**          |
+| syncer result | Consumer behavior                     |
+| ------------- | ------------------------------------- |
+| `true`        | **ACK** (message removed)             |
+| `false`       | **NACK → requeue once → dead-letter** |
+| throws        | **Fatal error → process exit**        |
+| non-boolean   | **Fatal error → process exit**        |
 
 ---
 
 ## 5. Retry & Dead-Letter Strategy
 
-- Messages are retried **at most once**
-- Retry detection uses `message.redelivered`
-- Second failure → **DROP** (dead-letter exchange)
+Two independent retry controls exist.
+
+### 5.1 Consumer redelivery guard
+
+- First failure → requeue
+- If message is redelivered again → **DROP → dead-letter**
+
+This prevents infinite retry loops.
+
+---
+
+### 5.2 Retry limit (`maxRetries`)
+
+If configured:
+
+- retry count is read from RabbitMQ `x-death` header
+- when exceeded → **ACK and drop**
+
+This is used when queues already implement retry pipelines via DLX.
 
 ---
 
@@ -97,8 +153,12 @@ If the `syncer`:
 
 Then:
 
-1. The error is logged
-2. The process exits immediately
+1. Error is logged
+2. Consumer closes
+3. Connection closes
+4. Process exits immediately
+
+This is treated as a **permanent system failure**, not a message failure.
 
 ---
 
@@ -106,10 +166,12 @@ Then:
 
 On shutdown (`SIGINT`, `SIGTERM`, fatal error):
 
-1. The consumer is closed
-2. The RabbitMQ connection is closed
+1. Consumer is closed
+2. RabbitMQ connection is closed
 3. Final ACK/NACK counters are logged
-4. The process exits
+4. Process exits
+
+Shutdown is graceful unless the process crashes unexpectedly.
 
 ---
 
@@ -121,10 +183,16 @@ The following counters are tracked in memory:
 - `count.ack` – successfully processed messages
 - `count.nack` – rejected / retried messages
 
+Counters reset on process restart.
+
 ---
 
 ## Summary (TL;DR)
 
-- **Good messages** → ACK
-- **Recoverable failures** → retry once → DLQ
-- **Bad code or corrupted data** → crash fast
+- Valid message + handler success → ACK
+- Recoverable failure → requeue once → DLQ
+- Retry limit exceeded → ACK and drop
+- Invalid message → requeue once → DLQ
+- Handler crash or contract violation → process exits immediately
+
+---

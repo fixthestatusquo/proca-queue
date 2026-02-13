@@ -139,8 +139,6 @@ export const syncQueue = async (
       if (maxRetries) {
         const deaths = message.headers?.['x-death']?.[0]?.count ?? 0;
 
-        console.log('x-death header:', deaths, 'headers', message.headers);
-
         if (deaths > maxRetries) {
           console.error(
             `retry limit exceeded (${deaths} > ${maxRetries}) — ACK and drop`
