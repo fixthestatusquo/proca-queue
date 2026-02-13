@@ -12,6 +12,7 @@ export type ConsumerOpts = {
   prefetch?: number; // 2x concurrency by default
   keyStore?: KeyStore;
   tag?: string; // custom name for the consumer, package name by default
+  maxRetries?: number; // max retries before dropping a message, default is 5
 };
 
 export type SyncCallback = (action: ActionMessage | Event) => Promise<boolean>;

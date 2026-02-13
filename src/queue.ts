@@ -20,7 +20,9 @@ export const listenConnection = (fct: any) => listeners.push(fct);
 let consumer: any = null;
 export const count: Counters = { queued: undefined, ack: 0, nack: 0 };
 
-async function exitHandler(evtOrExitCodeOrError: number | string | Error) {
+async function exitHandler(
+  evtOrExitCodeOrError: number | string | Error
+): Promise<void> {
   try {
     if (connection) {
       console.log(
@@ -29,8 +31,8 @@ async function exitHandler(evtOrExitCodeOrError: number | string | Error) {
         'and rejecting',
         count.nack
       );
-      await consumer.close();
-      await connection.close();
+      await consumer?.close();
+      await connection?.close();
     }
     console.log('closed, exit now');
     process.exit(isNaN(+evtOrExitCodeOrError) ? 0 : +evtOrExitCodeOrError);
@@ -46,18 +48,25 @@ export const connect = (queueUrl: string) => {
   rabbit.on('error', (err) => {
     console.log('RabbitMQ connection error', err);
   });
+
   rabbit.on('connection', () => {
     console.log(
       `Connection successfully (re)established, ${consumer?.stats?.initialMessageCount} messages in the queue`
     );
     listeners.forEach((d: any) => d(connection));
-    //await ch.close()
   });
 
-  process.once('SIGINT', exitHandler);
+  // Connect() might be called multiple times
+  //so guard against duplicate listeners
+  if (!process.listenerCount('SIGINT')) {
+    process.once('SIGINT', exitHandler);
+  }
 
   ['uncaughtException', 'unhandledRejection', 'SIGTERM'].forEach((evt) => {
-    process.on(evt, exitHandler);
+    // duplicates guard
+    if (!process.listenerCount(evt)) {
+      process.on(evt, exitHandler);
+    }
   });
 
   return rabbit as any;
@@ -84,8 +93,9 @@ export const syncQueue = async (
   opts?: ConsumerOpts
 ) => {
   const concurrency = opts?.concurrency || 1;
-  const prefetch = 2 * concurrency;
+  const prefetch = opts?.prefetch || 2 * concurrency;
   const rabbit = await connect(queueUrl);
+  const maxRetries = opts?.maxRetries ?? null;
 
   // get host name
   const tag =
@@ -96,13 +106,27 @@ export const syncQueue = async (
       requeue: false,
       noAck: false,
       queueOptions: { passive: true },
-      concurrency: concurrency,
+      concurrency,
       consumerTag: tag,
       qos: { prefetchCount: prefetch },
     },
     async (message: AsyncMessage) => {
       // If this function throws an error, then message is NACK'd (rejected) and
       // possibly requeued or sent to a dead-letter exchange
+
+      if (maxRetries) {
+        const deaths = message.headers?.['x-death']?.[0]?.count ?? 0;
+
+        console.log('x-death header:', deaths, 'headers', message.headers);
+
+        if (deaths > maxRetries) {
+          console.error(
+            `retry limit exceeded (${deaths} > ${maxRetries}) — ACK and drop`
+          );
+          count.ack++;
+          return ConsumerStatus.ACK;
+        }
+      }
 
       let msg: any;
 
@@ -163,7 +187,8 @@ export const syncQueue = async (
       } catch (e) {
         // if the syncer throw an error it's a permanent problem, we need to close
         console.error('fatal error processing:', e);
-        process.exit(1);
+        await exitHandler(e instanceof Error ? e : String(e));
+        throw e;
       }
     }
   );

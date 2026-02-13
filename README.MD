@@ -109,3 +109,5 @@ PROCA_PASSWORD=password \
 PROCA_QUEUE=queue \
 npm run test
 ```
+
+It will log and nack messages (nothing will be lost from the queue).
