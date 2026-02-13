@@ -43,18 +43,20 @@ async function exitHandler(evtOrExitCodeOrError: number | string | Error) {
 export const connect = (queueUrl: string) => {
   const rabbit = new Connection(queueUrl);
   connection = rabbit; // global
-  rabbit.on('error', err => {
+  rabbit.on('error', (err) => {
     console.log('RabbitMQ connection error', err);
   });
   rabbit.on('connection', () => {
-    console.log('Connection successfully (re)established');
+    console.log(
+      `Connection successfully (re)established, ${consumer?.stats?.initialMessageCount} messages in the queue`
+    );
     listeners.forEach((d: any) => d(connection));
     //await ch.close()
   });
 
   process.once('SIGINT', exitHandler);
 
-  ['uncaughtException', 'unhandledRejection', 'SIGTERM'].forEach(evt => {
+  ['uncaughtException', 'unhandledRejection', 'SIGTERM'].forEach((evt) => {
     process.on(evt, exitHandler);
   });
 
@@ -165,19 +167,6 @@ export const syncQueue = async (
       }
     }
   );
-
-  const messageCount = async () => {
-    const { messageCount } = await sub._ch.queueDeclare({
-      queue: sub._queue,
-      passive: true,
-    });
-    console.log('messages in the queue', messageCount);
-    count.queued = messageCount;
-  };
-
-  sub.on('ready', async () => {
-    await messageCount();
-  });
 
   sub.on('error', (err: any) => {
     // Maybe the consumer was cancelled, or the connection was reset before a
