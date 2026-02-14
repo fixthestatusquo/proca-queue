@@ -197,7 +197,7 @@ export const syncQueue = async (
         if (result === false) {
           return requeueOnceOrDrop(
             message,
-            `syncer returned false for message ${msg?.actionId ?? msg}`
+            `syncer returned false for message ${msg?.actionId ?? JSON.stringify(msg).slice(0, 512)}`
           );
         }
 
