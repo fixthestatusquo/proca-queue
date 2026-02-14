@@ -1,30 +1,43 @@
 import { decryptPersonalInfo } from '@proca/crypto';
-import { AsyncMessage, Connection, ConsumerStatus } from 'rabbitmq-client';
+import {
+  AsyncMessage,
+  Connection,
+  ConsumerStatus,
+  Consumer,
+} from 'rabbitmq-client';
 
-import LineByLine from 'line-by-line';
-export { ActionMessageV2 as ActionMessage, ActionMessageV2, ProcessStage } from './actionMessage';
-
-import { ActionMessageV2 } from './actionMessage';
+export {
+  ActionMessageV2 as ActionMessage,
+  ActionMessageV2,
+  ProcessStage,
+} from './actionMessage';
 
 import { ConsumerOpts, SyncCallback, Counters } from './types';
 
 import os from 'os';
 
-let connection: any = null;
+let connection: Connection | null = null;
+let consumer: Consumer | null = null;
 
 const listeners: any = []; // functions to be called when a new connection is created
 
 export const listenConnection = (fct: any) => listeners.push(fct);
 
-let consumer: any = null;
 export const count: Counters = { queued: undefined, ack: 0, nack: 0 };
 
-async function exitHandler(evtOrExitCodeOrError: number | string | Error) {
+async function exitHandler(
+  evtOrExitCodeOrError: number | string | Error
+): Promise<void> {
   try {
     if (connection) {
-      console.log('closing after processing', count.ack, "and rejecting", count.nack);
-      await consumer.close();
-      await connection.close();
+      console.log(
+        'closing after processing',
+        count.ack,
+        'and rejecting',
+        count.nack
+      );
+      await consumer?.close();
+      await connection?.close();
     }
     console.log('closed, exit now');
     process.exit(isNaN(+evtOrExitCodeOrError) ? 0 : +evtOrExitCodeOrError);
@@ -32,7 +45,6 @@ async function exitHandler(evtOrExitCodeOrError: number | string | Error) {
     console.error('EXIT HANDLER ERROR', e);
     process.exit(isNaN(+evtOrExitCodeOrError) ? 1 : +evtOrExitCodeOrError);
   }
-
 }
 
 export const connect = (queueUrl: string) => {
@@ -41,35 +53,50 @@ export const connect = (queueUrl: string) => {
   rabbit.on('error', (err) => {
     console.log('RabbitMQ connection error', err);
   });
+
   rabbit.on('connection', () => {
-    console.log('Connection successfully (re)established');
+    console.log(
+      `Connection successfully (re)established, ${consumer?.stats?.initialMessageCount} messages in the queue`
+    );
     listeners.forEach((d: any) => d(connection));
-    //await ch.close()
   });
 
-  process.once('SIGINT', exitHandler),
-    ['uncaughtException', 'unhandledRejection', 'SIGTERM'].forEach((evt) =>
-      process.on(evt, exitHandler)
-    );
+  // Connect() might be called multiple times
+  //so guard against duplicate listeners
+  if (!process.listenerCount('SIGINT')) {
+    process.once('SIGINT', exitHandler);
+  }
+
+  ['uncaughtException', 'unhandledRejection', 'SIGTERM'].forEach((evt) => {
+    // duplicates guard
+    if (!process.listenerCount(evt)) {
+      process.on(evt, exitHandler);
+    }
+  });
 
   return rabbit as any;
 };
 
-export async function testQueue(queueUrl: string, queueName: string) {
-  throw new Error("it shouldn't call testQueue " + queueUrl + ':' + queueName);
+const requeueOnceOrDrop = (
+  message: AsyncMessage,
+  reason: string = 'unknown reason'
+): ConsumerStatus => {
+  console.error(reason);
+  count.nack++;
 
-  /*
-  const conn = await connect(queueUrl)
-  const ch = await conn.createChannel()
-  try {
-    const status = await ch.checkQueue(queueName)
-    return status
-  } finally {
-    ch.close()
-    conn.close()
+  if (message.redelivered) {
+    console.error('already requeued, push to dead-letter');
+    return ConsumerStatus.DROP;
   }
-  */
-}
+  return ConsumerStatus.REQUEUE;
+};
+
+export const isPositiveInt = (value: number, name = 'value') => {
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(`${name} must be a positive integer (> 0), got ${value}`);
+  }
+  return value;
+};
 
 export const syncQueue = async (
   queueUrl: string,
@@ -77,96 +104,114 @@ export const syncQueue = async (
   syncer: SyncCallback,
   opts?: ConsumerOpts
 ) => {
-  const concurrency = opts?.concurrency || 1;
-  const prefetch = 2 * concurrency;
+  // might be an overkill but want to be sure that invalid options not cause unexpected behavior
+  const concurrency = opts?.concurrency
+    ? isPositiveInt(opts.concurrency, 'concurrency')
+    : isPositiveInt(1, 'concurrency');
+
+  const prefetch = opts?.prefetch
+    ? isPositiveInt(opts.prefetch, 'prefetch')
+    : isPositiveInt(2 * concurrency, 'prefetch');
+
+  const maxRetries = opts?.maxRetries
+    ? isPositiveInt(opts.maxRetries, 'maxRetries')
+    : null;
+
   const rabbit = await connect(queueUrl);
 
   // get host name
-  const tag = os.hostname() + '.' + (opts?.tag ? opts.tag : process.env.npm_package_name);
+  const tag =
+    os.hostname() + '.' + (opts?.tag ? opts.tag : process.env.npm_package_name);
   const sub = rabbit.createConsumer(
     {
       queue: queueName,
       requeue: false,
       noAck: false,
       queueOptions: { passive: true },
-      concurrency: concurrency,
+      concurrency,
       consumerTag: tag,
       qos: { prefetchCount: prefetch },
     },
-    async (msg: AsyncMessage) => {
-      // The message is automatically acknowledged when this function ends.
-      // If this function throws an error, then msg is NACK'd (rejected) and
+    async (message: AsyncMessage) => {
+      // If this function throws an error, then message is NACK'd (rejected) and
       // possibly requeued or sent to a dead-letter exchange
-      let action: ActionMessageV2 = JSON.parse(msg.body.toString());
 
-      // upgrade old v1 message format to v2, will add it if I can stop typescript to freak out
-      //      if (action.schema === 'proca:action:1') {
-      //        action = actionMessageV1to2(action);
-      //      }
+      if (maxRetries) {
+        const deaths = message.headers?.['x-death']?.[0]?.count ?? 0;
 
-      if (action as ActionMessageV2) { // make it easier to process by moving the id to their objects
-        if (action.campaign)
-          action.campaign.id = action.campaignId;
-        if (action.action)
-          action.action.id = action.actionId;
-        if (action.org)
-          action.org.id = action.orgId;
-        if (action.actionPage)
-          action.actionPage.id = action.actionPageId;
-        // optional decrypt
-        if (action.personalInfo && opts?.keyStore) {
-          const plainPII = decryptPersonalInfo(
-            action.personalInfo,
-            opts.keyStore
+        if (deaths > maxRetries) {
+          console.error(
+            `retry limit exceeded (${deaths} > ${maxRetries}) — ACK and drop`
           );
-          action.contact = { ...action.contact, ...plainPII };
+          count.ack++;
+          return ConsumerStatus.ACK;
+        }
+      }
+
+      let msg: any;
+
+      try {
+        msg = JSON.parse(message.body.toString());
+      } catch {
+        return requeueOnceOrDrop(
+          message,
+          `invalid JSON payload, cannot parse ${message.body
+            .toString()
+            .slice(0, 512)}`
+        );
+      }
+
+      // if the message is unknown, drop and log but do not crash
+      if (msg?.schema !== 'proca:action:2' && msg?.schema !== 'proca:event:2') {
+        return requeueOnceOrDrop(
+          message,
+          `unknown schema "${msg?.schema || JSON.stringify(msg).slice(0, 512)}"`
+        );
+      }
+
+      if (msg.schema === 'proca:action:2') {
+        // make it easier to process by moving the id to their objects
+        if (msg.campaign) msg.campaign.id = msg.campaignId;
+        if (msg.action) msg.action.id = msg.actionId;
+        if (msg.org) msg.org.id = msg.orgId;
+        if (msg.actionPage) msg.actionPage.id = msg.actionPageId;
+        // optional decrypt
+        if (msg.personalInfo && opts?.keyStore) {
+          const plainPII = decryptPersonalInfo(msg.personalInfo, opts.keyStore);
+          msg.contact = { ...msg.contact, ...plainPII };
         }
       }
       try {
-        const processed = await syncer(action);
-        if (typeof processed !== 'boolean') {
-          console.error(
-            `Returned value must be boolean. Nack action, actionId: ${action.actionId}):`
+        // we expect the syncer to return boolean.
+        // - return true  → ACK
+        // - return false → NACK / requeue
+        // - throw or return non-boolean → process exits immediately
+
+        const result = await syncer(msg);
+
+        if (result === true) {
+          count.ack++;
+          return ConsumerStatus.ACK;
+        }
+
+        if (result === false) {
+          return requeueOnceOrDrop(
+            message,
+            `syncer returned false for message ${msg?.actionId ?? JSON.stringify(msg).slice(0, 512)}`
           );
-          rabbit.close(); // we need to shutdown
-          throw new Error("the syncer must return a boolean");
         }
-        if (!processed) {
-          count.nack++;
-          if (msg.redelivered) {
-            console.error('already requeued, push to dead-letter', action?.actionId ? 'Action Id:' + action.actionId : '!');
-            return ConsumerStatus.DROP;
-          }
-          // nack
-          console.error('we need to nack and requeue', action?.actionId ? 'Action Id:' + action.actionId : '!');
-          return ConsumerStatus.REQUEUE; // nack + requeue
-        }
-        count.ack++;
-        return ConsumerStatus.ACK;
+
+        throw new Error(
+          `syncer must return boolean, got: ${JSON.stringify(result)}`
+        );
       } catch (e) {
         // if the syncer throw an error it's a permanent problem, we need to close
-        console.error('fatal error processing, we should close?', e);
-        return ConsumerStatus.DROP; // no requeue
+        console.error('fatal error processing:', e);
+        await exitHandler(e instanceof Error ? e : String(e));
+        throw e;
       }
-      // returning a false or {processed:false}-> message should be nacked
-      console.error('we should not be there');
-      rabbit.close(); // we need to shutdown
-      throw new Error("message not properly processed #" + action?.actionId);
     }
   );
-
-  const messageCount = async () => {
-    const { messageCount } = await sub._ch.queueDeclare({
-      queue: sub._queue,
-      passive: true
-    })
-    console.log("messages in the queue", messageCount);
-    count.queued = messageCount;
-  }
-
-  sub.on('ready', async () => {
-    await messageCount();
-  });
 
   sub.on('error', (err: any) => {
     // Maybe the consumer was cancelled, or the connection was reset before a
@@ -174,30 +219,4 @@ export const syncQueue = async (
     console.log('rabbit error', err);
   });
   consumer = sub; // global
-};
-
-export const syncFile = (
-  filePath: string,
-  syncer: SyncCallback,
-  opts?: ConsumerOpts
-) => {
-  const lines = new LineByLine(filePath);
-
-  lines.on('line', async (l) => {
-    let action: ActionMessageV2 = JSON.parse(l);
-
-    //    if (action.schema === 'proca:action:1') {
-    //      action = actionMessageV1to2(action);
-    //    }
-
-    // optional decrypt
-    if (action.personalInfo && opts?.keyStore) {
-      const plainPII = decryptPersonalInfo(action.personalInfo, opts.keyStore);
-      action.contact = { ...action.contact, ...plainPII };
-    }
-
-    lines.pause();
-    await syncer(action);
-    lines.resume();
-  });
 };

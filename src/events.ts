@@ -1,6 +1,22 @@
-import {ContactV2, PrivacyV2, Campaign as CampaignFragment, ActionV2, ActionPage, Tracking} from './actionMessage'
+import {
+  ContactV2,
+  PrivacyV2,
+  Campaign as CampaignFragment,
+  ActionV2,
+  ActionPage,
+  Tracking,
+} from './actionMessage';
 
-export type EmailStatusEvent = {
+type EventBase = {
+  schema: 'proca:event:2';
+  timestamp: string; // ISO8601
+};
+
+/* -------------------- */
+/* email_status event   */
+/* -------------------- */
+
+export type EmailStatusEvent = EventBase & {
   eventType: 'email_status';
   action?: ActionV2;
   actionPage?: ActionPage;
@@ -8,36 +24,79 @@ export type EmailStatusEvent = {
   supporter: {
     contact: ContactV2;
     privacy: PrivacyV2;
-  },
+  };
   tracking?: Tracking;
-}
+};
 
-export type EventMessageV2 = {
-  schema: 'proca:event:2',
-  timestamp: string,
-} & EmailStatusEvent
-
+/* -------------------- */
+/* campaign_updated     */
+/* -------------------- */
 
 type Json = Record<string, any>;
 
 type CampaignMessage = {
-  config: Json; // JSON object with arbitrary structure
-  contactSchema: string; // e.g., "basic"
-  externalId: number;
   id: number;
+  externalId: number;
   name: string;
+  title: string;
+  contactSchema: string;
+  config: Json;
   org: {
     name: string;
     title: string;
   };
-  title: string;
 };
 
-export type CampaignUpdatedEventMessage = {
-  campaign: CampaignMessage;
+export type CampaignUpdatedEvent = EventBase & {
+  eventType: 'campaign_updated';
   campaignId: number;
-  eventType: string; // e.g., "campaign_updated"
   orgId: number;
-  schema: string; // e.g., "proca:event:2"
-  timestamp: string; // ISO8601 format
+  campaign: CampaignMessage;
 };
+
+/* -------------------- */
+/* confirm_created      */
+/* -------------------- */
+
+export type ConfirmCreatedEvent = EventBase & {
+  eventType: 'confirm_created';
+  confirm: {
+    acceptLink: string;
+    rejectLink: string;
+    code: string;
+    objectId: number;
+    subjectId: number;
+    operation: string;
+    email: string;
+    message: string;
+    campaign: {
+      name: string;
+      title: string;
+    };
+    creator: {
+      email: string;
+      jobTitle: string | null;
+    };
+    org: {
+      name: string;
+      title: string;
+      twitter?: {
+        name: string;
+        screenName: string;
+        description: string;
+        url: string;
+        picture: string;
+        followersCount: number;
+      };
+    };
+  };
+};
+
+/* -------------------- */
+/* Event   */
+/* -------------------- */
+
+export type Event =
+  | EmailStatusEvent
+  | CampaignUpdatedEvent
+  | ConfirmCreatedEvent;

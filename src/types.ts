@@ -1,6 +1,6 @@
-import { KeyStore } from "@proca/crypto";
-import { ActionMessage } from "./actionMessage";
-import { EventMessageV2, CampaignUpdatedEventMessage } from "./events";
+import { KeyStore } from '@proca/crypto';
+import { ActionMessage } from './actionMessage';
+import { Event } from './events';
 
 export type DecryptOpts = {
   decrypt?: boolean;
@@ -12,13 +12,10 @@ export type ConsumerOpts = {
   prefetch?: number; // 2x concurrency by default
   keyStore?: KeyStore;
   tag?: string; // custom name for the consumer, package name by default
+  maxRetries?: number; // max retries before dropping a message, default is 5
 };
 
-export type SyncResult = {
-  processed: boolean;
-}
-
-export type SyncCallback = (action: ActionMessage | EventMessageV2 | CampaignUpdatedEventMessage) => Promise<SyncResult | boolean>;
+export type SyncCallback = (message: ActionMessage | Event) => Promise<boolean>;
 
 export type Counters = {
   ack: number;

@@ -1,37 +1,113 @@
-# Proca SDK: queue helpers
+# Proca Queue
 
-Proca server pushes actions through AMQP queues, to which you can plug in your microservice.
-This module provides few helpers to work with queues.
+This package provides a **robust RabbitMQ consumer** for processing Proca **action** and **event** messages with strict retry, dead-letter, and crash semantics.
 
-if you intend to sync with a crm, you might want to start [with this higher level template](https://github.com/fixthestatusquo/proca-sync/)
+For behavior details, see:
 
-## TypeScript types
+- **[docs/workflow.md](docs/workflow.md)**
+- **[docs/diagram.md](docs/diagram.md)**
 
-- `ActionMessageV2` - a type describing message with an action data
-- `EventMessageV2` - a type describing message with an event supporter email_status changed data
-- `CampaignUpdatedEventMessage` - a type describing message with an event campaign updated data
+---
 
-## Functions
+## Supported Message Types
 
-- `syncQueue(url, queueName, callback, options)` - Start reading actions and events from `queueName` queue from AMQP server at `url`. For each action or event, `callback` is called.
+The consumer handles **two schemas**:
 
-  - options is a map with:
+### Actions
 
-    - `concurrency` - if set, set number of messages to be processed at the same time
-    - `keyStore` - decryption key store (see `@proca/crypto` module) if PII of supporters is to be decrypted
+- `proca:action:2`
 
-  - Callback signature is: `async callback(action : ActionMessageV2 | EventMessageV2)`
+### Events
 
-  - it returns boolean (or {processed:boolean{) if false, the message is nacked. if it's the first time the message has been processed, it is directly requeued, otherwise, it's dropped (pushed in the dead-letter queue and replayed later)
+- `proca:event:2`
 
-  - if this function throw an error, we are going to close the connection
+Supported events:
 
-  - TODO: `testQueue(url, queueName)` - If queue `queueName` exists on AMQP server `url`, return its stats
+- `email_status`
+- `campaign_updated`
+- `confirm_created`
+
+The consumer passes mesages to the handler/syncer.
+
+---
+
+## Consumer API
+
+### `syncQueue`
+
+```ts
+syncQueue(
+  queueUrl: string,
+  queueName: string,
+  syncer: SyncCallback,
+  opts?: ConsumerOpts
+)
+```
+
+### Handler return value semantics:
+
+| Handler result       | Effect                     |
+| -------------------- | -------------------------- |
+| `true`               | ACK (message removed)      |
+| `false`              | NACK → retry once → DLQ    |
+| throws / non-boolean | Fatal error → process exit |
+
+---
+
+## Configuration (`ConsumerOpts`)
+
+```ts
+type ConsumerOpts = {
+  concurrency?: number; // default: 1
+  prefetch?: number; // default: 2 × concurrency
+  keyStore?: KeyStore; // enables PII decryption
+  tag?: string; // consumer tag (defaults to package name)
+};
+```
+
+---
+
+## Runtime Metrics
+
+The consumer tracks in-memory counters:
+
+```ts
+type Counters = {
+  ack: number; // successfully processed
+  nack: number; // rejected / retried
+  queued: number | undefined; // queue depth at startup
+};
+```
+
+---
+
+## Error & Retry Model (Summary)
+
+- Invalid JSON → NACK → retry once → DLQ
+- Unknown schema → NACK → retry once → DLQ
+- Handler returns `false` → NACK → retry once → DLQ
+- Handler throws or misbehaves → **process exits immediately**
+- No infinite retries
+
+Full details: see `workflow.md`.
+
+---
 
 ## AMQP authentication
 
 Use HTTP Basic Auth inlined in url to authenticate to AMQP server (eg. `amqps://username:password@example.com:1572`).
 
-## Version 5.0.0
+---
 
-Function syncQueue is updated to manage the case when it needs to nack a message without closing the channel. It will fail if the callback does not return the boolean. All the apps that use version 3 of this function should be adapted before updating, or they will break.
+## Local Testing
+
+To connect to a whatever queue locally set ENVs and `nmp run test`, eg:
+
+```
+PROCA_USERNAME=username \
+PROCA_PASSWORD=password \
+PROCA_QUEUE=queue \
+npm run test
+```
+
+It will log and nack messages (nothing will be lost from the queue).
