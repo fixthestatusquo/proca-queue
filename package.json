@@ -75,7 +75,7 @@
     "dprint": "^0.49.1",
     "esbuild": "^0.27.3",
     "eslint": "9.25.0",
-    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-hooks": "^7.0.1",
     "husky": "^9.1.7",
     "size-limit": "^11.1.6",
     "tsdx": "^2.0.0",
