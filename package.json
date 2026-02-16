@@ -71,7 +71,7 @@
     "@size-limit/preset-small-lib": "^11.2.0",
     "@types/eslint__js": "^8.42.3",
     "@types/line-by-line": "^0.1.9",
-    "cross-env": "^7.0.3",
+    "cross-env": "^10.1.0",
     "dprint": "^0.49.1",
     "esbuild": "^0.27.3",
     "eslint": "9.25.0",
