@@ -103,7 +103,7 @@ export const syncQueue = async (
   queueName: string,
   syncer: SyncCallback,
   opts?: ConsumerOpts
-) => {
+): Promise<{ close: () => Promise<void> }> => {
   // might be an overkill but want to be sure that invalid options not cause unexpected behavior
   const concurrency = opts?.concurrency
     ? isPositiveInt(opts.concurrency, 'concurrency')
@@ -219,4 +219,10 @@ export const syncQueue = async (
     console.log('rabbit error', err);
   });
   consumer = sub; // global
+  return {
+    close: async () => {
+      await sub.close();
+      await rabbit.close();
+    },
+  };
 };
