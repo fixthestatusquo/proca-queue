@@ -1,12 +1,21 @@
 {
-  "version": "6.0.1",
+  "name": "@proca/queue",
+  "version": "6.1.1",
   "license": "AGPL-3.0",
   "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
   "typings": "dist/index.d.ts",
   "exports": {
     ".": {
-      "require": "./dist/index.cjs",
-      "import": "./dist/index.mjs"
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs"
+      },
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      }
     }
   },
   "files": [
@@ -14,9 +23,9 @@
     "src"
   ],
   "scripts": {
-    "_build": "cross-env NODE_ENV=production tsup-node",
-    "build": "node src/esbuild.mjs",
-    "build:dev": " cross-env NODE_ENV=development tsup-node",
+    "build": "tsup",
+    "build:dev": "cross-env NODE_ENV=development tsup",
+    "prepack": "npm run build",
     "coverage": "vitest run --coverage",
     "dev": "node-dev dist/main.js",
     "format": "dprint fmt",
@@ -54,16 +63,14 @@
     "singleQuote": true,
     "trailingComma": "es5"
   },
-  "name": "@proca/queue",
   "author": "Marcin Koziej",
-  "module": "dist/queue.esm.js",
   "size-limit": [
     {
-      "path": "dist/queue.cjs.production.min.js",
+      "path": "dist/index.cjs",
       "limit": "10 KB"
     },
     {
-      "path": "dist/queue.esm.js",
+      "path": "dist/index.mjs",
       "limit": "10 KB"
     }
   ],

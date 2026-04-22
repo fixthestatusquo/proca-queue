@@ -27,9 +27,27 @@ Supported events:
 - `campaign_updated`
 - `confirm_created`
 
-The consumer passes mesages to the handler/syncer.
+The consumer passes messages to the handler/syncer.
 
 ---
+
+## Usage
+
+```ts
+import { syncQueue, ActionMessage, Event } from '@proca/queue';
+
+const handler = async (msg: ActionMessage | Event) => {
+  console.log('Received message:', msg);
+  return true; // ACK
+};
+
+await syncQueue(
+  'amqps://user:pass@api.proca.app/proca_live',
+  'your-queue-name',
+  handler,
+  { concurrency: 5 }
+);
+```
 
 ## Consumer API
 
@@ -41,7 +59,7 @@ syncQueue(
   queueName: string,
   syncer: SyncCallback,
   opts?: ConsumerOpts
-)
+): Promise<{ close: () => Promise<void> }>
 ```
 
 ### Handler return value semantics:
@@ -61,7 +79,8 @@ type ConsumerOpts = {
   concurrency?: number; // default: 1
   prefetch?: number; // default: 2 × concurrency
   keyStore?: KeyStore; // enables PII decryption
-  tag?: string; // consumer tag (defaults to package name)
+  tag?: string; // consumer tag (defaults to hostname + package name)
+  maxRetries?: number; // max retries before dropping a message (uses x-death)
 };
 ```
 
@@ -72,11 +91,9 @@ type ConsumerOpts = {
 The consumer tracks in-memory counters:
 
 ```ts
-type Counters = {
-  ack: number; // successfully processed
-  nack: number; // rejected / retried
-  queued: number | undefined; // queue depth at startup
-};
+import { count } from '@proca/queue';
+
+console.log(count.ack); // number of successfully processed messages
 ```
 
 ---
@@ -99,15 +116,10 @@ Use HTTP Basic Auth inlined in url to authenticate to AMQP server (eg. `amqps://
 
 ---
 
-## Local Testing
+## Development
 
-To connect to a whatever queue locally set ENVs and `nmp run test`, eg:
-
+```bash
+npm install
+npm run build
+npm test
 ```
-PROCA_USERNAME=username \
-PROCA_PASSWORD=password \
-PROCA_QUEUE=queue \
-npm run test
-```
-
-It will log and nack messages (nothing will be lost from the queue).

@@ -54,6 +54,8 @@ export type CampaignUpdatedEvent = EventBase & {
   campaign: CampaignMessage;
 };
 
+export type CampaignUpdatedEventMessage = CampaignUpdatedEvent;
+
 /* -------------------- */
 /* confirm_created      */
 /* -------------------- */
@@ -100,3 +102,5 @@ export type Event =
   | EmailStatusEvent
   | CampaignUpdatedEvent
   | ConfirmCreatedEvent;
+
+export type EventMessageV2 = Event;
