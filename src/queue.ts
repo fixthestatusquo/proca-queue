@@ -181,6 +181,11 @@ export const syncQueue = async (
           msg.contact = { ...msg.contact, ...plainPII };
         }
       }
+      if (msg.schema === 'proca:event:2') {
+        if (msg.campaign) msg.campaign.id = msg.campaignId;
+        if (msg.action) msg.action.id = msg.actionId;
+        if (msg.actionPage) msg.actionPage.id = msg.actionPageId;
+      }
       try {
         // we expect the syncer to return boolean.
         // - return true  → ACK
