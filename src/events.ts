@@ -102,5 +102,3 @@ export type Event =
   | EmailStatusEvent
   | CampaignUpdatedEvent
   | ConfirmCreatedEvent;
-
-export type EventMessageV2 = Event;

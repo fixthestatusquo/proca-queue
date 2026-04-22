@@ -1,6 +1,6 @@
 {
   "name": "@proca/queue",
-  "version": "6.2.0",
+  "version": "6.3.0",
   "license": "AGPL-3.0",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
@@ -24,7 +24,7 @@
     "proca-queue.d.ts"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "build": "tsup",
     "build:dev": "cross-env NODE_ENV=development tsup",
     "prepack": "npm run build",
     "coverage": "vitest run --coverage",
