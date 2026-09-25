@@ -1,4 +1,4 @@
-import { PersonalInfo } from "@proca/crypto";
+import type { PersonalInfo } from "@proca/crypto";
 
 /**
  * The format of action + contact data stored as JSON in the processing queue.
@@ -149,7 +149,11 @@ export const actionMessageV1to2 = (a1: ActionMessageV1): ActionMessage => {
       },
     };
   } else {
-    pii = JSON.parse(a1.contact.payload);
+    try {
+      pii = JSON.parse(a1.contact.payload);
+    } catch (e) {
+      throw new Error(`invalid contact payload JSON: ${(e as Error).message}`);
+    }
   }
 
   const a2: ActionMessageV2 = {

@@ -1,14 +1,11 @@
 {
   "compilerOptions": {
-    "module": "CommonJS",
-    "lib": ["esnext"],
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "types": ["node"],
-    "importHelpers": true,
-    "declaration": true,
     "resolveJsonModule": true,
-    "sourceMap": true,
-    "outDir": "build",
-    "rootDir": ".",
     "strict": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
@@ -19,7 +16,5 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true
   },
-  "ts-node": {
-    "swc": true
-  }
+  "include": ["src", "tsup.config.ts"]
 }

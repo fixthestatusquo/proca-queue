@@ -1,9 +1,3 @@
-export { connect, listenConnection, syncQueue, count } from './queue';
-
-export { pause } from './utils';
-
-export { actionMessageV1to2 } from './actionMessage';
-
 export type {
   ActionMessage,
   ActionMessageV1,
@@ -11,12 +5,13 @@ export type {
   Campaign,
   ContactV2 as Contact,
   ProcessStage,
-} from './actionMessage';
-
+} from "./actionMessage";
+export { actionMessageV1to2 } from "./actionMessage";
 export type {
-  Event as EventMessageV2,
   CampaignUpdatedEvent,
   CampaignUpdatedEvent as CampaignUpdatedEventMessage,
-} from './events';
-
-export type { ConsumerOpts, SyncCallback, Counters, MessageMeta } from './types';
+  Event as EventMessageV2,
+} from "./events";
+export { connect, count, listenConnection, syncQueue } from "./queue";
+export type { ConsumerOpts, Counters, MessageMeta, SyncCallback } from "./types";
+export { pause } from "./utils";

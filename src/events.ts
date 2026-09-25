@@ -1,14 +1,14 @@
-import {
+import type {
+  ActionPage,
+  ActionV2,
+  Campaign as CampaignFragment,
   ContactV2,
   PrivacyV2,
-  Campaign as CampaignFragment,
-  ActionV2,
-  ActionPage,
   Tracking,
-} from './actionMessage';
+} from "./actionMessage";
 
 type EventBase = {
-  schema: 'proca:event:2';
+  schema: "proca:event:2";
   timestamp: string; // ISO8601
 };
 
@@ -17,7 +17,7 @@ type EventBase = {
 /* -------------------- */
 
 export type EmailStatusEvent = EventBase & {
-  eventType: 'email_status';
+  eventType: "email_status";
   action?: ActionV2;
   actionPage?: ActionPage;
   campaign?: CampaignFragment;
@@ -32,7 +32,7 @@ export type EmailStatusEvent = EventBase & {
 /* campaign_updated     */
 /* -------------------- */
 
-type Json = Record<string, any>;
+type Json = Record<string, unknown>;
 
 type CampaignMessage = {
   id: number;
@@ -48,7 +48,7 @@ type CampaignMessage = {
 };
 
 export type CampaignUpdatedEvent = EventBase & {
-  eventType: 'campaign_updated';
+  eventType: "campaign_updated";
   campaignId: number;
   orgId: number;
   campaign: CampaignMessage;
@@ -61,7 +61,7 @@ export type CampaignUpdatedEventMessage = CampaignUpdatedEvent;
 /* -------------------- */
 
 export type ConfirmCreatedEvent = EventBase & {
-  eventType: 'confirm_created';
+  eventType: "confirm_created";
   confirm: {
     acceptLink: string;
     rejectLink: string;
@@ -98,7 +98,4 @@ export type ConfirmCreatedEvent = EventBase & {
 /* Event   */
 /* -------------------- */
 
-export type Event =
-  | EmailStatusEvent
-  | CampaignUpdatedEvent
-  | ConfirmCreatedEvent;
+export type Event = EmailStatusEvent | CampaignUpdatedEvent | ConfirmCreatedEvent;
