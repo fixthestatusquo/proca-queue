@@ -19,4 +19,4 @@ export type {
   CampaignUpdatedEvent as CampaignUpdatedEventMessage,
 } from './events';
 
-export type { ConsumerOpts, SyncCallback, Counters } from './types';
+export type { ConsumerOpts, SyncCallback, Counters, MessageMeta } from './types';

@@ -101,11 +101,13 @@ No side effects occur at this stage.
 
 ## 4. Business Processing (`syncer`)
 
-The normalized message is passed to the user-provided:
+The normalized message and its metadata are passed to the user-provided:
 
+```ts
+await syncer(msg, meta)
 ```
-await syncer(msg)
-```
+
+`meta` contains `routingKey`, `exchange`, `redelivered`, and `headers` (RabbitMQ message headers, including `x-death`).
 
 ### Expected contract
 

@@ -192,7 +192,12 @@ export const syncQueue = async (
         // - return false → NACK / requeue
         // - throw or return non-boolean → process exits immediately
 
-        const result = await syncer(msg);
+        const result = await syncer(msg, {
+          routingKey: message.routingKey,
+          exchange: message.exchange,
+          redelivered: message.redelivered ?? false,
+          headers: message.headers,
+        });
 
         if (result === true) {
           count.ack++;

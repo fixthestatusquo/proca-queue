@@ -135,7 +135,7 @@ export type CampaignUpdatedEvent = {
     name: string;
     title: string;
     contactSchema: string;
-    config: Record<string, any>;
+    config: Record<string, unknown>;
     org: {
       name: string;
       title: string;
@@ -193,7 +193,17 @@ export type ConsumerOpts = {
   maxRetries?: number;
 };
 
-export type SyncCallback = (message: ActionMessage | Event) => Promise<boolean>;
+export type MessageMeta = {
+  routingKey: string;
+  exchange: string;
+  redelivered: boolean;
+  headers?: Record<string, unknown>;
+};
+
+export type SyncCallback = (
+  message: ActionMessage | Event,
+  meta: MessageMeta
+) => Promise<boolean>;
 
 export type Counters = {
   ack: number;

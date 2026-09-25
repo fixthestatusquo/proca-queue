@@ -27,7 +27,7 @@ Supported events:
 - `campaign_updated`
 - `confirm_created`
 
-The consumer passes messages to the handler/syncer.
+The consumer passes messages to the handler/syncer, along with message metadata (routing key, exchange, redelivery flag, headers).
 
 ---
 
@@ -36,8 +36,8 @@ The consumer passes messages to the handler/syncer.
 ```ts
 import { syncQueue, ActionMessage, Event } from '@proca/queue';
 
-const handler = async (msg: ActionMessage | Event) => {
-  console.log('Received message:', msg);
+const handler = async (msg: ActionMessage | Event, meta: MessageMeta) => {
+  console.log('Received message:', msg, 'routingKey:', meta.routingKey);
   return true; // ACK
 };
 
