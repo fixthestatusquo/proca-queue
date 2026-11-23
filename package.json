@@ -1,6 +1,6 @@
 {
   "name": "@proca/queue",
-  "version": "7.0.0",
+  "version": "7.0.2",
   "license": "AGPL-3.0",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
