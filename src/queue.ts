@@ -19,7 +19,18 @@ export const listenConnection = (fct: any) => listeners.push(fct);
 
 export const count: Counters = { queued: undefined, ack: 0, nack: 0 };
 
+let exiting = false;
+
+// signals (SIGINT/SIGTERM) are a normal stop: 0, an explicit code is kept, anything else is an error: 1
+const exitCode = (evt: unknown): number => {
+  if (typeof evt === "number") return evt;
+  if (typeof evt === "string" && evt.startsWith("SIG")) return 0;
+  return 1;
+};
+
 async function exitHandler(evtOrExitCodeOrError: number | string | Error): Promise<void> {
+  if (exiting) process.exit(1); // second signal while closing: force exit
+  exiting = true;
   try {
     if (connection) {
       console.log("closing after processing", count.ack, "and rejecting", count.nack);
@@ -27,10 +38,10 @@ async function exitHandler(evtOrExitCodeOrError: number | string | Error): Promi
       await connection?.close();
     }
     console.log("closed, exit now");
-    process.exit(Number.isNaN(+evtOrExitCodeOrError) ? 0 : +evtOrExitCodeOrError);
+    process.exit(exitCode(evtOrExitCodeOrError));
   } catch (e) {
     console.error("EXIT HANDLER ERROR", e);
-    process.exit(Number.isNaN(+evtOrExitCodeOrError) ? 1 : +evtOrExitCodeOrError);
+    process.exit(exitCode(evtOrExitCodeOrError) || 1);
   }
 }
 
@@ -191,7 +202,8 @@ export const syncQueue = async (
       } catch (e) {
         // if the syncer throw an error it's a permanent problem, we need to close
         console.error("fatal error processing:", e);
-        await exitHandler(e instanceof Error ? e : String(e));
+        // do not await: consumer.close() waits for in-flight handlers, including this one (deadlock)
+        setImmediate(() => exitHandler(e instanceof Error ? e : String(e)));
         throw e;
       }
     }
